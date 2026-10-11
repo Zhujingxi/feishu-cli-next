@@ -20,7 +20,7 @@ permissions:
 jobs:
   sync-pr-labels:
     if: ${{ github.event.pull_request.state == 'open' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     steps:
       - uses: actions/checkout@v7
 

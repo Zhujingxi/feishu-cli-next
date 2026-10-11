@@ -235,6 +235,7 @@ make fmt-check
 
 Project documentation:
 
+- [CI execution](docs/ci.md) — self-hosted Linux routing, prerequisites and queued-job recovery.
 - [Implementation ledger](docs/IMPLEMENTATION.md) — completed work, evidence, and remaining gates.
 - [Design plan](docs/PLAN.md) — goals, scope, and acceptance criteria.
 - [Distribution](docs/distribution.md) — local installation, packaging, and release status.

@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   check-format:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     steps:
       - uses: actions/checkout@v7
 

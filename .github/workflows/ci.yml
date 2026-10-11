@@ -20,12 +20,13 @@ permissions:
 jobs:
   # ── Layer 1: Fast Gate ─────────────────────────────────────────────
   fast-gate:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v6
         with:
           go-version-file: go.mod
+          cache: false # This runner retains Go caches locally.
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.x'
@@ -56,7 +57,7 @@ jobs:
 
   plugin-integration:
     needs: fast-gate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
         with:
@@ -64,12 +65,13 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v6
         with:
           go-version-file: go.mod
+          cache: false # This runner retains Go caches locally.
       - name: Run plugin-integration L4 tests
         run: go test -count=1 -timeout=15m ./tests/plugin_e2e/...
 
   sidecar-integration:
     needs: fast-gate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
         with:
@@ -77,18 +79,20 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v6
         with:
           go-version-file: go.mod
+          cache: false # This runner retains Go caches locally.
       - name: Run sidecar tag build + HMAC round-trip
         run: make sidecar-test
 
   # ── Layer 2: Quality Gate ──────────────────────────────────────────
   unit-test:
     needs: fast-gate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v6
         with:
           go-version-file: go.mod
+          cache: false # This runner retains Go caches locally.
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.x'
@@ -97,7 +101,7 @@ jobs:
 
   lint:
     needs: fast-gate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
         with:
@@ -106,6 +110,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v6
         with:
           go-version-file: go.mod
+          cache: false # This runner retains Go caches locally.
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.x'
@@ -122,7 +127,7 @@ jobs:
 
   script-test:
     needs: fast-gate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
         with:
@@ -131,6 +136,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v6
         with:
           go-version-file: go.mod
+          cache: false # This runner retains Go caches locally.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
@@ -139,7 +145,7 @@ jobs:
 
   deterministic-gate:
     needs: fast-gate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     permissions:
       contents: read
       actions: read
@@ -150,6 +156,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v6
         with:
           go-version-file: go.mod
+          cache: false # This runner retains Go caches locally.
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.x'
@@ -190,12 +197,13 @@ jobs:
 
   coverage:
     needs: fast-gate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v6
         with:
           go-version-file: go.mod
+          cache: false # This runner retains Go caches locally.
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.x'
@@ -215,7 +223,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
       - name: Check coverage threshold
         run: |
-          total=$(go tool cover -func=coverage.txt | grep total | awk '{print $3}' | tr -d '%')
+          total=$(go tool cover -func=coverage.txt | awk '$1 == "total:" {sub(/%$/, "", $3); print $3}')
+          [[ "$total" =~ ^[0-9]+([.][0-9]+)?$ ]] || { echo "::error::Invalid coverage total: $total"; exit 1; }
           threshold=40
           echo "Coverage: ${total}% (threshold: ${threshold}%)"
           if (( $(echo "$total < $threshold" | bc -l) )); then
@@ -229,7 +238,7 @@ jobs:
             echo "No coverage data available" >> $GITHUB_STEP_SUMMARY
             exit 0
           fi
-          total=$(go tool cover -func=coverage.txt | grep total | awk '{print $3}')
+          total=$(go tool cover -func=coverage.txt | awk '$1 == "total:" {print $3}')
           echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Total coverage: ${total}**" >> $GITHUB_STEP_SUMMARY
@@ -244,7 +253,7 @@ jobs:
   deadcode:
     needs: fast-gate
     if: ${{ github.event_name == 'pull_request' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
         with:
@@ -252,6 +261,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v6
         with:
           go-version-file: go.mod
+          cache: false # This runner retains Go caches locally.
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.x'
@@ -261,25 +271,25 @@ jobs:
           # Filter "go: downloading ..." lines to avoid false diffs from module cache state
           go run golang.org/x/tools/cmd/deadcode@v0.31.0 -test ./... 2>&1 | \
             grep -v '^go: ' | \
-            sed 's/:[0-9][0-9]*:[0-9][0-9]*:/:/' | sort > /tmp/dc-head.txt
+            sed 's/:[0-9][0-9]*:[0-9][0-9]*:/:/' | sort > "${RUNNER_TEMP}/dc-head.txt"
 
           # Analyze base branch via worktree
-          git worktree add -q /tmp/dc-base "origin/${{ github.base_ref }}"
-          (cd /tmp/dc-base && \
+          git worktree add -q "${RUNNER_TEMP}/dc-base" "origin/${{ github.base_ref }}"
+          (cd "${RUNNER_TEMP}/dc-base" && \
            go run golang.org/x/tools/cmd/deadcode@v0.31.0 -test ./... 2>&1 | \
             grep -v '^go: ' | \
-            sed 's/:[0-9][0-9]*:[0-9][0-9]*:/:/' | sort > /tmp/dc-base.txt) || {
+            sed 's/:[0-9][0-9]*:[0-9][0-9]*:/:/' | sort > "${RUNNER_TEMP}/dc-base.txt") || {
             echo "::warning::Failed to analyze base branch — skipping incremental dead code check"
-            git worktree remove -f /tmp/dc-base 2>/dev/null || true
+            git worktree remove -f "${RUNNER_TEMP}/dc-base" 2>/dev/null || true
             exit 0
           }
-          git worktree remove -f /tmp/dc-base
+          git worktree remove -f "${RUNNER_TEMP}/dc-base"
 
           # Only new dead code blocks the PR
-          comm -23 /tmp/dc-head.txt /tmp/dc-base.txt > /tmp/dc-new.txt
-          if [ -s /tmp/dc-new.txt ]; then
+          comm -23 "${RUNNER_TEMP}/dc-head.txt" "${RUNNER_TEMP}/dc-base.txt" > "${RUNNER_TEMP}/dc-new.txt"
+          if [ -s "${RUNNER_TEMP}/dc-new.txt" ]; then
             echo "::group::New dead code"
-            cat /tmp/dc-new.txt
+            cat "${RUNNER_TEMP}/dc-new.txt"
             echo "::endgroup::"
             echo "::error::New dead code detected — remove unreachable functions before merging"
             exit 1
@@ -289,7 +299,7 @@ jobs:
   # ── Layer 3: E2E Gate ──────────────────────────────────────────────
   e2e-dry-run:
     needs: [unit-test, lint, script-test, deterministic-gate]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
@@ -298,6 +308,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v6
         with:
           go-version-file: go.mod
+          cache: false # This runner retains Go caches locally.
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.x'
@@ -355,7 +366,7 @@ jobs:
 
   # ── Layer 4: Security & Compliance (parallel with L2-L3) ──────────
   security:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     permissions:
       contents: read
       pull-requests: read
@@ -366,6 +377,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v6
         with:
           go-version-file: go.mod
+          cache: false # This runner retains Go caches locally.
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.x'
@@ -382,7 +394,7 @@ jobs:
 
   license-header:
     if: ${{ github.event_name == 'pull_request' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
       - name: Check license headers
@@ -394,7 +406,7 @@ jobs:
   results:
     if: ${{ always() }}
     needs: [fast-gate, unit-test, lint, script-test, deterministic-gate, coverage, deadcode, e2e-dry-run, security, license-header, plugin-integration, sidecar-integration]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, feishu-ci]
     steps:
       - name: Evaluate results
         run: |
