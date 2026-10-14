@@ -18,7 +18,7 @@ concurrency:
 jobs:
   preflight:
     if: ${{ false }} # P4: next publication channel has not been accepted.
-    runs-on: ubuntu-22.04
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     permissions:
       contents: read
     outputs:
@@ -91,7 +91,7 @@ jobs:
 
   build-sign-notarize:
     needs: preflight
-    runs-on: ubuntu-22.04
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     timeout-minutes: 45
     # This is the single approval boundary for the release. It grants access to
     # Apple signing material before the candidate is built.
@@ -211,7 +211,7 @@ jobs:
 
   create-draft-release:
     needs: [preflight, build-sign-notarize]
-    runs-on: ubuntu-22.04
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     timeout-minutes: 15
     permissions:
       contents: write
@@ -319,9 +319,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: macos-15-intel
+          - runner: blacksmith-6vcpu-macos-15
             arch: amd64
-          - runner: macos-15
+          - runner: blacksmith-6vcpu-macos-15
             arch: arm64
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
@@ -360,7 +360,7 @@ jobs:
 
   publish-github:
     needs: [preflight, create-draft-release, verify-macos]
-    runs-on: ubuntu-22.04
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     timeout-minutes: 15
     permissions:
       contents: write
@@ -430,7 +430,7 @@ jobs:
 
   publish-npm:
     needs: [preflight, build-sign-notarize, publish-github]
-    runs-on: ubuntu-22.04
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     timeout-minutes: 15
     concurrency:
       group: npm-release-${{ needs.preflight.outputs.channel }}
@@ -544,7 +544,7 @@ jobs:
   retry-guidance:
     needs: [preflight, build-sign-notarize, create-draft-release, verify-macos, publish-github, publish-npm]
     if: ${{ always() && (needs.preflight.result == 'failure' || needs.build-sign-notarize.result == 'failure' || needs.create-draft-release.result == 'failure' || needs.verify-macos.result == 'failure' || needs.publish-github.result == 'failure' || needs.publish-npm.result == 'failure') }}
-    runs-on: ubuntu-22.04
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     permissions:
       contents: read
     steps:
